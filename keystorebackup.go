@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/brotherlogic/goserver"
+	"github.com/brotherlogic/goserver/utils"
 	"github.com/brotherlogic/keystore/client"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
 	pbg "github.com/brotherlogic/goserver/proto"
-	"github.com/brotherlogic/goserver/utils"
+	pbks "github.com/brotherlogic/keystore/proto"
 	pb "github.com/brotherlogic/keystorebackup/proto"
 )
 
@@ -22,18 +23,41 @@ const (
 	KEY = "/github.com/brotherlogic/keystorebackup/config"
 )
 
+type keystore interface {
+	getDirectory(ctx context.Context) (*pbks.GetDirectoryResponse, error)
+}
+
+type keystoreProd struct {
+	dial func(server string) (*grpc.ClientConn, error)
+}
+
+func (k *keystoreProd) getDirectory(ctx context.Context) (*pbks.GetDirectoryResponse, error) {
+	conn, err := k.dial("keystore")
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	client := pbks.NewKeyStoreServiceClient(conn)
+	return client.GetDirectory(ctx, &pbks.GetDirectoryRequest{})
+}
+
 //Server main server type
 type Server struct {
 	*goserver.GoServer
-	config *pb.Config
+	config      *pb.Config
+	trackedKeys []string
+	keystore    keystore
 }
 
 // Init builds the server
 func Init() *Server {
 	s := &Server{
-		GoServer: &goserver.GoServer{},
-		config:   &pb.Config{},
+		GoServer:    &goserver.GoServer{},
+		config:      &pb.Config{},
+		trackedKeys: []string{},
 	}
+	s.keystore = &keystoreProd{dial: s.DialMaster}
 	return s
 }
 
@@ -82,7 +106,8 @@ func (s *Server) Mote(ctx context.Context, master bool) error {
 // GetState gets the state of the server
 func (s *Server) GetState() []*pbg.State {
 	return []*pbg.State{
-		&pbg.State{Key: "last_run", Value: s.config.LastRun},
+		&pbg.State{Key: "last_run", TimeValue: s.config.LastRun},
+		&pbg.State{Key: "tracked_keys", Value: int64(len(s.trackedKeys))},
 	}
 }
 
@@ -109,6 +134,8 @@ func main() {
 		server.save(ctx)
 		return
 	}
+
+	server.RegisterRepeatingTask(server.syncKeys, "sync_keys", time.Minute*5)
 
 	fmt.Printf("%v", server.Serve())
 }
