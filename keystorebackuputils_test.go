@@ -21,6 +21,14 @@ func (k *keystoreTest) getDirectory(ctx context.Context) (*pbks.GetDirectoryResp
 	return &pbks.GetDirectoryResponse{Keys: []string{"key1", "key2"}}, nil
 }
 
+func (k *keystoreTest) read(ctx context.Context, req *pbks.ReadRequest) (*pbks.ReadResponse, error) {
+	if k.fail {
+		return nil, fmt.Errorf("Built to fail")
+	}
+
+	return &pbks.ReadResponse{}, nil
+}
+
 func InitTest() *Server {
 	s := Init()
 	s.SkipLog = true
@@ -49,5 +57,26 @@ func TestPullKeysFail(t *testing.T) {
 	err := s.syncKeys(context.Background())
 	if err == nil {
 		t.Fatalf("Sync did not fail")
+	}
+}
+
+func TestPullData(t *testing.T) {
+	s := InitTest()
+	s.trackedKeys = append(s.trackedKeys, "madeup")
+
+	err := s.readData(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to read keys")
+	}
+}
+
+func TestPullDataFail(t *testing.T) {
+	s := InitTest()
+	s.trackedKeys = append(s.trackedKeys, "madeup")
+	s.keystore = &keystoreTest{fail: true}
+
+	err := s.readData(context.Background())
+	if err == nil {
+		t.Fatalf("Read did not fail")
 	}
 }

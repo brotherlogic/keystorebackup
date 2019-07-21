@@ -25,6 +25,7 @@ const (
 
 type keystore interface {
 	getDirectory(ctx context.Context) (*pbks.GetDirectoryResponse, error)
+	read(ctx context.Context, req *pbks.ReadRequest) (*pbks.ReadResponse, error)
 }
 
 type keystoreProd struct {
@@ -40,6 +41,17 @@ func (k *keystoreProd) getDirectory(ctx context.Context) (*pbks.GetDirectoryResp
 
 	client := pbks.NewKeyStoreServiceClient(conn)
 	return client.GetDirectory(ctx, &pbks.GetDirectoryRequest{})
+}
+
+func (k *keystoreProd) read(ctx context.Context, req *pbks.ReadRequest) (*pbks.ReadResponse, error) {
+	conn, err := k.dial("keystore")
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	client := pbks.NewKeyStoreServiceClient(conn)
+	return client.Read(ctx, req)
 }
 
 //Server main server type
