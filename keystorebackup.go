@@ -148,6 +148,7 @@ func main() {
 	}
 
 	server.RegisterRepeatingTask(server.syncKeys, "sync_keys", time.Minute*5)
+	server.RegisterRepeatingTask(server.readData, "read_data", time.Minute*4)
 
 	fmt.Printf("%v", server.Serve())
 }
