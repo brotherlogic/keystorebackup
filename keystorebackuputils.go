@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	pbks "github.com/brotherlogic/keystore/proto"
 	pb "github.com/brotherlogic/keystorebackup/proto"
@@ -23,7 +25,10 @@ func (s *Server) readData(ctx context.Context) error {
 	for _, key := range s.trackedKeys {
 		resp, err := s.keystore.read(ctx, &pbks.ReadRequest{Key: key})
 		if err != nil {
-			return err
+			statusCode, ok := status.FromError(err)
+			if !ok || statusCode.Code() != codes.OutOfRange {
+				return err
+			}
 		}
 		allDatums.Datums = append(allDatums.Datums, &pb.Datum{Key: key, Value: resp.Payload})
 	}
