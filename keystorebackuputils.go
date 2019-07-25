@@ -29,8 +29,9 @@ func (s *Server) readData(ctx context.Context) error {
 			if !ok || statusCode.Code() != codes.OutOfRange {
 				return err
 			}
+		} else {
+			allDatums.Datums = append(allDatums.Datums, &pb.Datum{Key: key, Value: resp.Payload})
 		}
-		allDatums.Datums = append(allDatums.Datums, &pb.Datum{Key: key, Value: resp.Payload})
 	}
 
 	s.Log(fmt.Sprintf("Read in %v worth of data", len(allDatums.String())))
