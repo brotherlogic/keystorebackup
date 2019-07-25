@@ -3,3 +3,4 @@ keystorebackup
 .test
 
 testing
+*.backup
