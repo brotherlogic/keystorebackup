@@ -31,6 +31,7 @@ func (k *keystoreTest) read(ctx context.Context, req *pbks.ReadRequest) (*pbks.R
 
 func InitTest() *Server {
 	s := Init()
+	s.saveDirectory = ".testdir"
 	s.SkipLog = true
 	s.keystore = &keystoreTest{}
 

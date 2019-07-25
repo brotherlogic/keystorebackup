@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"time"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -9,6 +11,7 @@ import (
 
 	pbks "github.com/brotherlogic/keystore/proto"
 	pb "github.com/brotherlogic/keystorebackup/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 func (s *Server) syncKeys(ctx context.Context) error {
@@ -35,5 +38,9 @@ func (s *Server) readData(ctx context.Context) error {
 	}
 
 	s.Log(fmt.Sprintf("Read in %v worth of data", len(allDatums.String())))
-	return nil
+
+	data, _ := proto.Marshal(allDatums)
+	today := time.Now()
+	err := ioutil.WriteFile(s.saveDirectory+"/"+fmt.Sprintf("%v-%v-%v.backup", today.Year(), today.Month(), today.Day()), data, 0644)
+	return err
 }
