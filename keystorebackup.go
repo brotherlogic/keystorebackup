@@ -125,6 +125,13 @@ func (s *Server) GetState() []*pbg.State {
 	}
 }
 
+func (s *Server) checkDate(ctx context.Context) error {
+	if time.Now().Sub(time.Unix(s.config.LastRun, 0)) > time.Hour*24 {
+		s.RaiseIssue(ctx, "Backup not run", fmt.Sprintf("Last backup was on %v", time.Unix(s.config.LastRun, 0)), false)
+	}
+	return nil
+}
+
 func main() {
 	var quiet = flag.Bool("quiet", false, "Show all output")
 	var init = flag.Bool("init", false, "Prep server")
@@ -151,6 +158,7 @@ func main() {
 
 	server.RegisterRepeatingTask(server.syncKeys, "sync_keys", time.Minute*5)
 	server.RegisterRepeatingTask(server.readData, "read_data", time.Minute*4)
+	server.RegisterRepeatingTask(server.checkDate, "check_date", time.Hour)
 
 	fmt.Printf("%v", server.Serve())
 }
