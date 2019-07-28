@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/brotherlogic/keystore/client"
 	"golang.org/x/net/context"
 
 	pbks "github.com/brotherlogic/keystore/proto"
@@ -34,7 +35,7 @@ func InitTest() *Server {
 	s.saveDirectory = ".testdir"
 	s.SkipLog = true
 	s.keystore = &keystoreTest{}
-
+	s.GoServer.KSclient = *keystoreclient.GetTestClient("./testing")
 	return s
 }
 
