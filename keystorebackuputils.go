@@ -43,5 +43,6 @@ func (s *Server) readData(ctx context.Context) error {
 	today := time.Now()
 	err := ioutil.WriteFile(s.saveDirectory+"/"+fmt.Sprintf("%v-%v-%v.backup", today.Year(), today.Month(), today.Day()), data, 0644)
 	s.config.LastRun = time.Now().Unix()
+	s.save(ctx)
 	return err
 }
