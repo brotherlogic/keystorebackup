@@ -156,8 +156,8 @@ func main() {
 		return
 	}
 
-	server.RegisterRepeatingTask(server.syncKeys, "sync_keys", time.Minute*5)
-	server.RegisterRepeatingTask(server.readData, "read_data", time.Minute*4)
+	server.RegisterRepeatingTask(server.syncKeys, "sync_keys", time.Minute*15)
+	server.RegisterRepeatingTask(server.readData, "read_data", time.Hour)
 	server.RegisterRepeatingTask(server.checkDate, "check_date", time.Hour)
 
 	fmt.Printf("%v", server.Serve())
