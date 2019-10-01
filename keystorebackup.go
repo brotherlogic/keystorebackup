@@ -58,7 +58,7 @@ func (k *keystoreProd) read(ctx context.Context, req *pbks.ReadRequest) (*pbks.R
 type Server struct {
 	*goserver.GoServer
 	config        *pb.Config
-	trackedKeys   []string
+	trackedKeys   []*pbks.FileMeta
 	keystore      keystore
 	saveDirectory string
 }
@@ -68,7 +68,7 @@ func Init() *Server {
 	s := &Server{
 		GoServer:      &goserver.GoServer{},
 		config:        &pb.Config{},
-		trackedKeys:   []string{},
+		trackedKeys:   []*pbks.FileMeta{},
 		saveDirectory: "/media/raid1/simon/keystore_backup/",
 	}
 	s.keystore = &keystoreProd{dial: s.DialMaster}
