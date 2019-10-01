@@ -26,14 +26,14 @@ func (s *Server) syncKeys(ctx context.Context) error {
 func (s *Server) readData(ctx context.Context) error {
 	allDatums := &pb.AllDatums{Datums: make([]*pb.Datum, 0)}
 	for _, key := range s.trackedKeys {
-		resp, err := s.keystore.read(ctx, &pbks.ReadRequest{Key: key})
+		resp, err := s.keystore.read(ctx, &pbks.ReadRequest{Key: key.Key})
 		if err != nil {
 			statusCode, ok := status.FromError(err)
 			if !ok || statusCode.Code() != codes.OutOfRange {
 				return err
 			}
 		} else {
-			allDatums.Datums = append(allDatums.Datums, &pb.Datum{Key: key, Value: resp.Payload})
+			allDatums.Datums = append(allDatums.Datums, &pb.Datum{Key: key.Key, Value: resp.Payload})
 		}
 	}
 

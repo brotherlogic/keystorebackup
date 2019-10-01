@@ -19,7 +19,7 @@ func (k *keystoreTest) getDirectory(ctx context.Context) (*pbks.GetDirectoryResp
 		return nil, fmt.Errorf("Built to fail")
 	}
 
-	return &pbks.GetDirectoryResponse{Keys: []string{"key1", "key2"}}, nil
+	return &pbks.GetDirectoryResponse{Keys: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1"}, &pbks.FileMeta{Key: "key2"}}}, nil
 }
 
 func (k *keystoreTest) read(ctx context.Context, req *pbks.ReadRequest) (*pbks.ReadResponse, error) {
@@ -64,7 +64,7 @@ func TestPullKeysFail(t *testing.T) {
 
 func TestPullData(t *testing.T) {
 	s := InitTest()
-	s.trackedKeys = append(s.trackedKeys, "madeup")
+	s.trackedKeys = append(s.trackedKeys, &pbks.FileMeta{Key: "madeup"})
 
 	err := s.readData(context.Background())
 	if err != nil {
@@ -74,7 +74,7 @@ func TestPullData(t *testing.T) {
 
 func TestPullDataFail(t *testing.T) {
 	s := InitTest()
-	s.trackedKeys = append(s.trackedKeys, "madeup")
+	s.trackedKeys = append(s.trackedKeys, &pbks.FileMeta{Key: "madeup"})
 	s.keystore = &keystoreTest{fail: true}
 
 	err := s.readData(context.Background())
