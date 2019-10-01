@@ -4,3 +4,5 @@ keystorebackup
 
 testing
 *.backup
+
+.testdir

@@ -11,7 +11,9 @@ import (
 )
 
 type keystoreTest struct {
-	fail bool
+	fail     bool
+	failRead bool
+	results  []*pbks.FileMeta
 }
 
 func (k *keystoreTest) getDirectory(ctx context.Context) (*pbks.GetDirectoryResponse, error) {
@@ -19,11 +21,11 @@ func (k *keystoreTest) getDirectory(ctx context.Context) (*pbks.GetDirectoryResp
 		return nil, fmt.Errorf("Built to fail")
 	}
 
-	return &pbks.GetDirectoryResponse{Keys: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1"}, &pbks.FileMeta{Key: "key2"}}}, nil
+	return &pbks.GetDirectoryResponse{Keys: k.results}, nil
 }
 
 func (k *keystoreTest) read(ctx context.Context, req *pbks.ReadRequest) (*pbks.ReadResponse, error) {
-	if k.fail {
+	if k.failRead {
 		return nil, fmt.Errorf("Built to fail")
 	}
 
@@ -34,13 +36,14 @@ func InitTest() *Server {
 	s := Init()
 	s.saveDirectory = ".testdir"
 	s.SkipLog = true
-	s.keystore = &keystoreTest{}
+	s.keystore = &keystoreTest{results: []*pbks.FileMeta{}}
 	s.GoServer.KSclient = *keystoreclient.GetTestClient("./testing")
 	return s
 }
 
 func TestPullKeys(t *testing.T) {
 	s := InitTest()
+	s.keystore = &keystoreTest{results: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1", Version: 1}}}
 
 	err := s.syncKeys(context.Background())
 	if err != nil {
@@ -62,23 +65,55 @@ func TestPullKeysFail(t *testing.T) {
 	}
 }
 
-func TestPullData(t *testing.T) {
+func TestSyncFailOnRead(t *testing.T) {
 	s := InitTest()
-	s.trackedKeys = append(s.trackedKeys, &pbks.FileMeta{Key: "madeup"})
+	s.keystore = &keystoreTest{fail: true}
 
-	err := s.readData(context.Background())
-	if err != nil {
-		t.Fatalf("Failed to read keys")
+	err := s.performSync(context.Background())
+
+	if err == nil {
+		t.Fatalf("Bad save did not fail")
 	}
 }
 
-func TestPullDataFail(t *testing.T) {
+func TestSaveDataFail(t *testing.T) {
 	s := InitTest()
-	s.trackedKeys = append(s.trackedKeys, &pbks.FileMeta{Key: "madeup"})
-	s.keystore = &keystoreTest{fail: true}
+	s.keystore = &keystoreTest{failRead: true}
 
-	err := s.readData(context.Background())
+	err := s.saveData(context.Background(), -1, &pbks.FileMeta{Key: "key1", Version: 1})
+
 	if err == nil {
-		t.Fatalf("Read did not fail")
+		t.Fatalf("Bad save did not fail")
+	}
+}
+
+func TestSaveNewFail(t *testing.T) {
+	s := InitTest()
+	s.keystore = &keystoreTest{results: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1", Version: 1}}, failRead: true}
+
+	err := s.performSync(context.Background())
+	if err == nil {
+		t.Errorf("Save did not fail")
+	}
+}
+
+func TestSaveOldFail(t *testing.T) {
+	s := InitTest()
+	s.keystore = &keystoreTest{results: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1", Version: 1}}}
+
+	err := s.performSync(context.Background())
+	if err != nil {
+		t.Errorf("Error syncing %v", err)
+	}
+
+	if s.saves != 1 {
+		t.Errorf("Key has not been saved")
+	}
+
+	s.keystore = &keystoreTest{results: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1", Version: 2}}, failRead: true}
+	err = s.performSync(context.Background())
+
+	if err == nil {
+		t.Errorf("bad save did not fail")
 	}
 }
