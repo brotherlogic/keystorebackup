@@ -3,14 +3,10 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"time"
 
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	pbks "github.com/brotherlogic/keystore/proto"
-	pb "github.com/brotherlogic/keystorebackup/proto"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -23,26 +19,55 @@ func (s *Server) syncKeys(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) readData(ctx context.Context) error {
-	allDatums := &pb.AllDatums{Datums: make([]*pb.Datum, 0)}
-	for _, key := range s.trackedKeys {
-		resp, err := s.keystore.read(ctx, &pbks.ReadRequest{Key: key.Key})
-		if err != nil {
-			statusCode, ok := status.FromError(err)
-			if !ok || statusCode.Code() != codes.OutOfRange {
+func (s *Server) performSync(ctx context.Context) error {
+	resp, err := s.keystore.getDirectory(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, key := range resp.Keys {
+		found := false
+		for i, stKey := range s.config.LastKeys {
+			if stKey.Key == key.Key {
+				found = true
+				if stKey.Version != key.Version {
+					err := s.saveData(ctx, i, key)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		if !found {
+			err := s.saveData(ctx, -1, key)
+			if err != nil {
 				return err
 			}
-		} else {
-			allDatums.Datums = append(allDatums.Datums, &pb.Datum{Key: key.Key, Value: resp.Payload})
 		}
 	}
 
-	s.Log(fmt.Sprintf("Read in %v worth of data", len(allDatums.String())))
+	return nil
+}
 
-	data, _ := proto.Marshal(allDatums)
-	today := time.Now()
-	err := ioutil.WriteFile(s.saveDirectory+"/"+fmt.Sprintf("%v-%v-%v.backup", today.Year(), today.Month(), today.Day()), data, 0644)
-	s.config.LastRun = time.Now().Unix()
-	s.save(ctx)
+func (s *Server) saveData(ctx context.Context, index int, key *pbks.FileMeta) error {
+	resp, err := s.keystore.read(ctx, &pbks.ReadRequest{Key: key.Key})
+	if err != nil {
+		return err
+	}
+
+	pl := resp.Payload
+	data, _ := proto.Marshal(pl)
+	err = ioutil.WriteFile(s.saveDirectory+"/"+fmt.Sprintf("%v.backup-%v", key.Key, key.Version), data, 0644)
+	if err == nil {
+		s.saves++
+		if index >= 0 {
+			s.config.LastKeys[index] = key
+		} else {
+			s.config.LastKeys = append(s.config.LastKeys, key)
+		}
+		s.save(ctx)
+	}
+
 	return err
 }

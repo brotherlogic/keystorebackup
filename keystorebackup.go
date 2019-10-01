@@ -61,6 +61,7 @@ type Server struct {
 	trackedKeys   []*pbks.FileMeta
 	keystore      keystore
 	saveDirectory string
+	saves         int64
 }
 
 // Init builds the server
@@ -120,6 +121,7 @@ func (s *Server) Mote(ctx context.Context, master bool) error {
 // GetState gets the state of the server
 func (s *Server) GetState() []*pbg.State {
 	return []*pbg.State{
+		&pbg.State{Key: "saves", Value: s.saves},
 		&pbg.State{Key: "last_run", TimeValue: s.config.LastRun},
 		&pbg.State{Key: "tracked_keys", Value: int64(len(s.trackedKeys))},
 	}
@@ -156,8 +158,6 @@ func main() {
 		return
 	}
 
-	server.RegisterRepeatingTask(server.syncKeys, "sync_keys", time.Minute*15)
-	server.RegisterRepeatingTask(server.readData, "read_data", time.Hour)
 	server.RegisterRepeatingTask(server.checkDate, "check_date", time.Hour)
 
 	fmt.Printf("%v", server.Serve())
