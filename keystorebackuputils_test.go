@@ -117,3 +117,9 @@ func TestSaveOldFail(t *testing.T) {
 		t.Errorf("bad save did not fail")
 	}
 }
+
+func TestTrim(t *testing.T) {
+	if trim("/blah") != "blah" {
+		t.Errorf("Bad trim %v", trim("/blah"))
+	}
+}
