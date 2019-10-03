@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"golang.org/x/net/context"
@@ -34,7 +35,7 @@ func (s *Server) performSync(ctx context.Context) error {
 				if stKey.Version != key.Version {
 					err := s.saveData(ctx, i, key)
 					if err != nil {
-						return err
+						return fmt.Errorf("Error saving existing data", err)
 					}
 				}
 			}
@@ -43,7 +44,7 @@ func (s *Server) performSync(ctx context.Context) error {
 		if !found {
 			err := s.saveData(ctx, -1, key)
 			if err != nil {
-				return err
+				return fmt.Errorf("Error saving new data: %v", err)
 			}
 		}
 	}
@@ -66,7 +67,14 @@ func (s *Server) saveData(ctx context.Context, index int, key *pbks.FileMeta) er
 
 	pl := resp.Payload
 	data, _ := proto.Marshal(pl)
-	err = ioutil.WriteFile(s.saveDirectory+fmt.Sprintf("%v.backup-%v", trim(key.Key), key.Version), data, 0644)
+
+	// Create the directory
+	file := s.saveDirectory + fmt.Sprintf("%v.backup-%v", trim(key.Key), key.Version)
+	dir := file[0:strings.LastIndex(file, "/")]
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.MkdirAll(dir, 0777)
+	}
+	err = ioutil.WriteFile(file, data, 0644)
 	if err == nil {
 		s.saves++
 		if index >= 0 {
@@ -75,10 +83,6 @@ func (s *Server) saveData(ctx context.Context, index int, key *pbks.FileMeta) er
 			s.config.LastKeys = append(s.config.LastKeys, key)
 		}
 		s.save(ctx)
-	}
-
-	if err != nil {
-		return fmt.Errorf("Error on write: %v", err)
 	}
 
 	return err
