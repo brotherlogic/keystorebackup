@@ -34,7 +34,7 @@ func (k *keystoreTest) read(ctx context.Context, req *pbks.ReadRequest) (*pbks.R
 
 func InitTest() *Server {
 	s := Init()
-	s.saveDirectory = ".testdir"
+	s.saveDirectory = ".testdir/"
 	s.SkipLog = true
 	s.keystore = &keystoreTest{results: []*pbks.FileMeta{}}
 	s.GoServer.KSclient = *keystoreclient.GetTestClient("./testing")
@@ -99,7 +99,7 @@ func TestSaveNewFail(t *testing.T) {
 
 func TestSaveOldFail(t *testing.T) {
 	s := InitTest()
-	s.keystore = &keystoreTest{results: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1", Version: 1}}}
+	s.keystore = &keystoreTest{results: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1/sub1", Version: 1}}}
 
 	err := s.performSync(context.Background())
 	if err != nil {
@@ -110,7 +110,7 @@ func TestSaveOldFail(t *testing.T) {
 		t.Errorf("Key has not been saved")
 	}
 
-	s.keystore = &keystoreTest{results: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1", Version: 2}}, failRead: true}
+	s.keystore = &keystoreTest{results: []*pbks.FileMeta{&pbks.FileMeta{Key: "key1/sub1", Version: 2}}, failRead: true}
 	err = s.performSync(context.Background())
 
 	if err == nil {
