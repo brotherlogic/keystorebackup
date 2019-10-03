@@ -77,5 +77,9 @@ func (s *Server) saveData(ctx context.Context, index int, key *pbks.FileMeta) er
 		s.save(ctx)
 	}
 
+	if err != nil {
+		return fmt.Errorf("Error on write: %v", err)
+	}
+
 	return err
 }
