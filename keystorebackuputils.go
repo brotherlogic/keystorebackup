@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -35,7 +36,7 @@ func (s *Server) performSync(ctx context.Context) error {
 				if stKey.Version != key.Version {
 					err := s.saveData(ctx, i, key)
 					if err != nil {
-						return fmt.Errorf("Error saving existing data", err)
+						return fmt.Errorf("Error saving existing data: %v", err)
 					}
 				}
 			}
@@ -49,6 +50,7 @@ func (s *Server) performSync(ctx context.Context) error {
 		}
 	}
 
+	s.config.LastRun = time.Now().Unix()
 	return nil
 }
 
