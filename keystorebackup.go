@@ -62,6 +62,7 @@ type Server struct {
 	keystore      keystore
 	saveDirectory string
 	saves         int64
+	startup       time.Time
 }
 
 // Init builds the server
@@ -112,6 +113,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) Mote(ctx context.Context, master bool) error {
 	if master {
 		err := s.load(ctx)
+		if err != nil {
+			s.startup = time.Now()
+		}
 		return err
 	}
 
@@ -129,7 +133,7 @@ func (s *Server) GetState() []*pbg.State {
 
 func (s *Server) checkDate(ctx context.Context) error {
 	if time.Now().Sub(time.Unix(s.config.LastRun, 0)) > time.Hour*24 {
-		s.RaiseIssue(ctx, "Backup not run", fmt.Sprintf("Last backup was on %v", time.Unix(s.config.LastRun, 0)), false)
+		s.RaiseIssue(ctx, "Backup not run", fmt.Sprintf("Last backup was on %v [we've been up since %v]", time.Unix(s.config.LastRun, 0), s.startup), false)
 	}
 	return nil
 }
