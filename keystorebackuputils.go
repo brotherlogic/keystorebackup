@@ -51,7 +51,7 @@ func (s *Server) performSync(ctx context.Context) error {
 	}
 
 	s.config.LastRun = time.Now().Unix()
-	return nil
+	return s.save(ctx)
 }
 
 func trim(key string) string {

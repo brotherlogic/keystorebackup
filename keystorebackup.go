@@ -77,8 +77,8 @@ func Init() *Server {
 	return s
 }
 
-func (s *Server) save(ctx context.Context) {
-	s.KSclient.Save(ctx, KEY, s.config)
+func (s *Server) save(ctx context.Context) error {
+	return s.KSclient.Save(ctx, KEY, s.config)
 }
 
 func (s *Server) load(ctx context.Context) error {
