@@ -169,4 +169,5 @@ func main() {
 	server.RegisterRepeatingTask(server.performSync, "perform_sync", time.Minute*5)
 
 	fmt.Printf("%v", server.Serve())
+
 }
